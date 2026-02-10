@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Barber Stable</title>
+    <title>AI Barber Final</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -152,7 +152,7 @@
 
         document.getElementById('analyzeBtn').innerText = "מעבד נתונים...";
         document.getElementById('results').style.display = 'block';
-        document.getElementById('results').innerText = "החלפנו למודל יציב (LLaVA)... מנתח עכשיו...";
+        document.getElementById('results').innerText = "מתחבר למודל החדש (Llama-4 Scout)...";
 
         const notes = document.getElementById('notes').value;
         const promptText = `
@@ -173,8 +173,8 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
                 body: JSON.stringify({ 
-                    // שינינו למודל היציב ביותר שלא נמחק
-                    model: "llava-v1.5-7b-4096-preview", 
+                    // שינינו למודל היחיד שעובד כרגע לפי העדכון של Groq
+                    model: "meta-llama/llama-4-scout-17b-16e-instruct", 
                     messages: [{ role: "user", content: content }],
                     max_tokens: 800
                 })
