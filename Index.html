@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Barber Pro</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #121212; color: #fff; text-align: center; padding: 20px; margin: 0; }
+        h1 { margin: 10px 0; color: #f55036; }
+        
+        /* עיצוב הגלריה */
+        .gallery { display: flex; justify-content: center; gap: 10px; margin: 20px 0; min-height: 80px; }
+        .gallery img { width: 80px; height: 80px; border-radius: 10px; border: 2px solid #f55036; object-fit: cover; }
+        
+        /* כפתורים */
+        .btn { 
+            background: #f55036; color: white; padding: 18px; width: 100%; max-width: 350px; 
+            border: none; border-radius: 12px; font-size: 20px; font-weight: bold; margin-top: 15px; 
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .btn:disabled { background: #444; color: #888; }
+        
+        /* תיבת טקסט */
+        textarea { 
+            width: 100%; max-width: 330px; padding: 15px; border-radius: 10px; 
+            background: #222; border: 1px solid #444; color: white; font-size: 16px; margin-top: 20px;
+        }
+
+        /* תוצאות */
+        #results { 
+            text-align: right; background: #1e1e1e; padding: 20px; border-radius: 15px; 
+            margin-top: 25px; display: none; border: 1px solid #333; line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>AI Barber 💈</h1>
+    <p style="color:#aaa; font-size:14px;">העלה 3 תמונות (סלפי) לניתוח</p>
+
+    <input type="file" id="cameraInput" accept="image/*" capture="user" style="display:none" onchange="handleFileSelect(event)">
+    
+    <div class="gallery" id="gallery"></div>
+
+    <button class="btn" onclick="triggerCamera()" id="snapBtn">📷 צלם תמונה (0/3)</button>
+    
+    <textarea id="notes" rows="3" placeholder="הערות (למשל: שיער דליל, מפרצים...)"></textarea>
+    
+    <button class="btn" onclick="analyze()" id="analyzeBtn" disabled>⚡ נתח וקבל המלצות</button>
+    <div id="results">Thinking...</div>
+
+<script>
+    // ==========================================
+    // 👇👇👇 תדביק את המפתח כאן וזהו 👇👇👇
+    // ==========================================
+    
+    const MY_KEY =״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״; 
+
+    // ==========================================
+    const API_KEY = MY_KEY; 
+    let photos = [];
+
+    // פונקציה שמפעילה את המצלמה הרגילה של האייפון
+    function triggerCamera() {
+        document.getElementById('cameraInput').click();
+    }
+
+    // פונקציה שמטפלת בתמונה אחרי שצילמת
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = e.target.result;
+            photos.push(data);
+            
+            // הצגת התמונה על המסך
+            const img = document.createElement('img');
+            img.src = data;
+            document.getElementById('gallery').appendChild(img);
+            
+            // עדכון כפתור
+            document.getElementById('snapBtn').innerText = `צלם תמונה (${photos.length}/3)`;
+            
+            if (photos.length >= 3) {
+                document.getElementById('snapBtn').innerText = "✅ סיימנו לצלם";
+                document.getElementById('snapBtn').disabled = true;
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function analyze() {
+        if (!API_KEY.startsWith("gsk_")) { alert("לא הדבקת את המפתח בקוד!"); return; }
+        
+        document.getElementById('analyzeBtn').innerText = "מעבד נתונים...";
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('results').style.display = 'block';
+        document.getElementById('results').innerText = "ה-AI מנתח את הפנים והשיער שלך... אנא המתן.";
+
+        const notes = document.getElementById('notes').value;
+        const promptText = `User notes: ${notes}. Output HEBREW only. 1. Face shape analysis. 2. 5 hairstyle recommendations explaining why they fit.`;
+
+        const content = [{ type: "text", text: promptText }];
+        photos.forEach(p => content.push({ type: "image_url", image_url: { url: p } }));
+
+        try {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
+                body: JSON.stringify({ model: "llama-3.2-11b-vision-preview", messages: [{ role: "user", content: content }], max_tokens: 1000 })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error.message);
+            
+            document.getElementById('results').innerHTML = "<h3>💈 תוצאות:</h3>" + data.choices[0].message.content.replace(/\n/g, '<br>');
+        } catch (e) {
+            document.getElementById('results').innerText = "שגיאה: " + e.message;
+        } finally {
+            document.getElementById('analyzeBtn').innerText = "⚡ נתח שוב";
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+    }
+</script>
+</body>
+</html>
