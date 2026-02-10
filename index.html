@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Barber Final</title>
+    <title>AI Barber - Mistral</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -82,7 +82,7 @@
 <body>
 
     <h1>💈 AI Barber</h1>
-    <p>העלה 3 תמונות כדי לקבל המלצה</p>
+    <p>גרסת מיסטרל (Mistral)</p>
 
     <div class="gallery" id="gallery"></div>
 
@@ -104,7 +104,7 @@
 
     function handleFile(input) {
         if (photos.length >= 3) {
-            alert("כבר יש 3 תמונות. רענן כדי להתחיל מחדש.");
+            alert("כבר יש 3 תמונות.");
             return;
         }
         const file = input.files[0];
@@ -131,60 +131,68 @@
         if (photos.length >= 3) {
             analyzeBtn.disabled = false;
             analyzeBtn.classList.add('active');
-            analyzeBtn.innerText = "⚡ נתח שיער עכשיו";
+            analyzeBtn.innerText = "⚡ נתח שיער עם Mistral";
             document.getElementById('cameraBtn').style.display = 'none';
         }
     }
 
     async function analyze() {
         // ============================================
-        // 👇👇👇 רק כאן תדביק את המפתח! 👇👇👇
+        // 👇👇👇 שים פה את המפתח של Mistral 👇👇👇
         // ============================================
         
-        const API_KEY = "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";
+        const API_KEY = "cFug2keDwfBzNHPJEolJ0KIO1Ecmyzob";
         
-        // 👆👆👆 אל תמחוק את הגרשיים "" 👆👆👆
+        // 👆👆👆 לא למחוק גרשיים ונקודה פסיק 👆👆👆
         // ============================================
 
         if (API_KEY.includes("הדבק_כאן")) {
-            alert("לא הדבקת את המפתח בקוד!"); return;
+            alert("לא שמת את המפתח של Mistral!"); return;
         }
 
-        document.getElementById('analyzeBtn').innerText = "מעבד נתונים...";
+        document.getElementById('analyzeBtn').innerText = "Mistral חושב...";
         document.getElementById('results').style.display = 'block';
-        document.getElementById('results').innerText = "מתחבר למודל החדש (Llama-4 Scout)...";
+        document.getElementById('results').innerText = "שולח למיסטרל...";
 
         const notes = document.getElementById('notes').value;
         const promptText = `
-        Act as a professional barber. Analyze these images of a person's hair and face.
-        User notes: "${notes}".
-        
+        Act as a professional barber. Analyze these user photos. 
+        User notes: ${notes}.
         OUTPUT IN HEBREW ONLY.
         Format:
         1. Face Shape Analysis.
-        2. 3 Recommended Haircuts (Name + Why).
+        2. 3 Recommended Haircuts.
         `;
 
+        // הכנת התמונות בפורמט של Mistral
         const content = [{ type: "text", text: promptText }];
-        photos.forEach(p => content.push({ type: "image_url", image_url: { url: p } }));
+        photos.forEach(p => content.push({ type: "image_url", image_url: p }));
 
         try {
-            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
+                headers: { 
+                    "Content-Type": "application/json", 
+                    "Authorization": `Bearer ${API_KEY}` 
+                },
                 body: JSON.stringify({ 
-                    // שינינו למודל היחיד שעובד כרגע לפי העדכון של Groq
-                    model: "meta-llama/llama-4-scout-17b-16e-instruct", 
+                    model: "pixtral-12b-2409", // המודל המיוחד לתמונות של מיסטרל
                     messages: [{ role: "user", content: content }],
-                    max_tokens: 800
+                    max_tokens: 1000
                 })
             });
             
             const data = await res.json();
-            if (data.error) throw new Error(data.error.message);
             
+            if (data.error) throw new Error(data.error.message);
+            if (!data.choices || data.choices.length === 0) throw new Error("No response");
+
             let text = data.choices[0].message.content;
-            text = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            
+            // עיצוב
+            text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            text = text.replace(/\n/g, '<br>');
+            
             document.getElementById('results').innerHTML = text;
             
         } catch (e) {
