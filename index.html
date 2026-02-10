@@ -86,6 +86,7 @@
             border-radius: 10px;
             display: none;
             white-space: pre-wrap; 
+            border: 1px solid #333;
         }
     </style>
 </head>
@@ -159,7 +160,7 @@
         // 👇👇👇 רק כאן תדביק את המפתח! 👇👇👇
         // ============================================
         
-        const API_KEY = "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";
+        const API_KEY = "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";
         
         // 👆👆👆 אל תמחוק את הגרשיים "" 👆👆👆
         // ============================================
@@ -183,15 +184,28 @@
             const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
-                body: JSON.stringify({ model: "llama-3.2-11b-vision-preview", messages: [{ role: "user", content: content }] })
+                body: JSON.stringify({ 
+                    // שינוי קריטי: שדרוג למודל החדש והחזק יותר שעובד עכשיו
+                    model: "llama-3.2-90b-vision-preview", 
+                    messages: [{ role: "user", content: content }],
+                    max_tokens: 1000
+                })
             });
             
             const data = await res.json();
             if (data.error) throw new Error(data.error.message);
-            document.getElementById('results').innerHTML = data.choices[0].message.content;
+            
+            // עיצוב התוצאה עם שבירת שורות וכותרות
+            let formattedText = data.choices[0].message.content;
+            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // הדגשות
+            formattedText = formattedText.replace(/\n/g, '<br>'); // ירידת שורה
+            
+            document.getElementById('results').innerHTML = formattedText;
             
         } catch (e) {
-            alert("שגיאה: " + e.message);
+            document.getElementById('results').innerText = "שגיאה: " + e.message;
+        } finally {
+             document.getElementById('analyzeBtn').innerText = "⚡ נתח שוב";
         }
     }
 </script>
