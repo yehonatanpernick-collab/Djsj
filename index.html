@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Barber Final</title>
+    <title>AI Barber Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body { 
@@ -15,9 +15,8 @@
             padding: 20px; 
         }
 
-        /* עיצוב הכפתור החדש - טריק לאייפון */
         .camera-label {
-            background: #d4af37; /* צבע זהב */
+            background: #d4af37; 
             color: #000;
             font-weight: bold;
             font-size: 20px;
@@ -30,10 +29,7 @@
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
         }
 
-        /* הסתרת האינפוט האמיתי בצורה שלא שוברת את הקוד */
-        input[type="file"] {
-            display: none;
-        }
+        input[type="file"] { display: none; }
 
         .gallery {
             display: flex;
@@ -43,8 +39,7 @@
         }
 
         .gallery img {
-            width: 80px;
-            height: 80px;
+            width: 80px; height: 80px;
             border-radius: 10px;
             object-fit: cover;
             border: 2px solid #d4af37;
@@ -62,20 +57,14 @@
         }
 
         .analyze-btn {
-            background: #444;
-            color: #888;
-            padding: 15px;
-            width: 100%;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
+            background: #444; color: #888;
+            padding: 15px; width: 100%;
+            border: none; border-radius: 12px;
+            font-size: 18px; font-weight: bold;
         }
         
         .analyze-btn.active {
-            background: #f55036; /* כתום */
-            color: white;
-            cursor: pointer;
+            background: #f55036; color: white; cursor: pointer;
         }
 
         #results {
@@ -85,7 +74,7 @@
             padding: 15px;
             border-radius: 10px;
             display: none;
-            white-space: pre-wrap; 
+            line-height: 1.6;
             border: 1px solid #333;
         }
     </style>
@@ -118,22 +107,16 @@
             alert("כבר יש 3 תמונות. רענן כדי להתחיל מחדש.");
             return;
         }
-
         const file = input.files[0];
         if (!file) return;
 
         const reader = new FileReader();
         reader.onload = function(e) {
             photos.push(e.target.result);
-            
-            // הצגת תמונה
             const img = document.createElement('img');
             img.src = e.target.result;
             document.getElementById('gallery').appendChild(img);
-
-            // איפוס האינפוט כדי שאפשר יהיה לצלם שוב
             input.value = ""; 
-
             updateButton();
         }
         reader.readAsDataURL(file);
@@ -149,8 +132,6 @@
             analyzeBtn.disabled = false;
             analyzeBtn.classList.add('active');
             analyzeBtn.innerText = "⚡ נתח שיער עכשיו";
-            
-            // הסתרת כפתור הצילום כשמסיימים
             document.getElementById('cameraBtn').style.display = 'none';
         }
     }
@@ -166,18 +147,25 @@
         // ============================================
 
         if (API_KEY.includes("הדבק_כאן")) {
-            alert("לא הדבקת את המפתח בקוד!");
-            return;
+            alert("לא הדבקת את המפתח בקוד!"); return;
         }
 
-        document.getElementById('analyzeBtn').innerText = "מעבד...";
+        document.getElementById('analyzeBtn').innerText = "מעבד נתונים...";
         document.getElementById('results').style.display = 'block';
-        document.getElementById('results').innerText = "חושב...";
+        document.getElementById('results').innerText = "החלפנו למודל יציב (LLaVA)... מנתח עכשיו...";
 
         const notes = document.getElementById('notes').value;
-        const prompt = `User notes: ${notes}. Output HEBREW only. 1. Face shape. 2. 5 Haircut recommendations.`;
+        const promptText = `
+        Act as a professional barber. Analyze these images of a person's hair and face.
+        User notes: "${notes}".
+        
+        OUTPUT IN HEBREW ONLY.
+        Format:
+        1. Face Shape Analysis.
+        2. 3 Recommended Haircuts (Name + Why).
+        `;
 
-        const content = [{ type: "text", text: prompt }];
+        const content = [{ type: "text", text: promptText }];
         photos.forEach(p => content.push({ type: "image_url", image_url: { url: p } }));
 
         try {
@@ -185,22 +173,19 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
                 body: JSON.stringify({ 
-                    // שינוי קריטי: שדרוג למודל החדש והחזק יותר שעובד עכשיו
-                    model: "llama-3.2-90b-vision-preview", 
+                    // שינינו למודל היציב ביותר שלא נמחק
+                    model: "llava-v1.5-7b-4096-preview", 
                     messages: [{ role: "user", content: content }],
-                    max_tokens: 1000
+                    max_tokens: 800
                 })
             });
             
             const data = await res.json();
             if (data.error) throw new Error(data.error.message);
             
-            // עיצוב התוצאה עם שבירת שורות וכותרות
-            let formattedText = data.choices[0].message.content;
-            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // הדגשות
-            formattedText = formattedText.replace(/\n/g, '<br>'); // ירידת שורה
-            
-            document.getElementById('results').innerHTML = formattedText;
+            let text = data.choices[0].message.content;
+            text = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            document.getElementById('results').innerHTML = text;
             
         } catch (e) {
             document.getElementById('results').innerText = "שגיאה: " + e.message;
